@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://video-producer/script.schema.json",
+  "title": "口播文案",
+  "type": "object",
+  "required": ["lines"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "title": { "type": "string" },
+    "caption": {
+      "type": "object",
+      "properties": { "fontFamily": { "type": "string" } }
+    },
+    "voice": {
+      "type": "object",
+      "properties": {
+        "spkId": { "type": "string" },
+        "promptWav": { "type": "string" },
+        "promptText": { "type": "string" },
+        "speed": { "type": "number", "minimum": 0.5, "maximum": 2.0 }
+      }
+    },
+    "bgm": {
+      "type": ["object", "null"],
+      "required": ["file"],
+      "properties": {
+        "file": { "type": "string" },
+        "gainDb": { "type": "number" },
+        "fadeOutSec": { "type": "number" }
+      }
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "id": { "type": "integer" },
+          "text": { "type": "string", "minLength": 1 },
+          "intent": { "type": "string" },
+          "shotHint": {
+            "enum": ["flatlay", "handheld", "product_closeup", "model_wear", "package", "other"]
+          }
+        }
+      }
+    }
+  }
+}

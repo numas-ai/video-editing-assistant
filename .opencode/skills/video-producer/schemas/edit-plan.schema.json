@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://video-producer/edit-plan.schema.json",
+  "title": "剪辑时间线",
+  "type": "object",
+  "required": ["schemaVersion", "canvas", "audio", "captions", "shots", "totalDuration"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "canvas": {
+      "type": "object",
+      "required": ["width", "height", "fps"],
+      "properties": {
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "fps": { "type": "number" }
+      }
+    },
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["index", "source", "sourceIn", "sourceOut", "duration", "crop", "start", "end"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+          "caption": { "type": "string" },
+          "source": { "type": "string" },
+          "clipId": { "type": "string" },
+          "sourceIn": { "type": "number", "minimum": 0 },
+          "sourceOut": { "type": "number", "minimum": 0 },
+          "duration": { "type": "number", "exclusiveMinimum": 0 },
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "speed": { "type": "number", "exclusiveMinimum": 0 },
+          "crop": {
+            "type": "object",
+            "required": ["x", "y", "w", "h"],
+            "properties": {
+              "x": { "type": "integer", "minimum": 0 },
+              "y": { "type": "integer", "minimum": 0 },
+              "w": { "type": "integer", "minimum": 2 },
+              "h": { "type": "integer", "minimum": 2 }
+            }
+          },
+          "grade": { "type": "object" },
+          "transitionIn": { "enum": ["cut", "xfade"] },
+          "tts": { "type": "string" }
+        }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "required": ["lines"],
+      "properties": {
+        "targetLufs": { "type": "number" },
+        "truePeakDb": { "type": "number" },
+        "bgm": {
+          "type": ["object", "null"],
+          "properties": {
+            "file": { "type": "string" },
+            "gainDb": { "type": "number" },
+            "fadeOutSec": { "type": "number" }
+          }
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start", "file", "duration"],
+            "properties": {
+              "start": { "type": "number" },
+              "file": { "type": "string" },
+              "duration": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "captions": {
+      "type": "object",
+      "required": ["style", "events"],
+      "properties": {
+        "style": {
+          "type": "object",
+          "required": ["fontFamily", "fontSize", "marginV"],
+          "properties": {
+            "fontFamily": { "type": "string" },
+            "fontSize": { "type": "integer" },
+            "primaryColor": { "type": "string" },
+            "outlineColor": { "type": "string" },
+            "outlineWidth": { "type": "integer" },
+            "shadow": { "type": "integer" },
+            "marginV": { "type": "integer" },
+            "alignment": { "type": "integer" }
+          }
+        },
+        "disclaimer": { "type": ["object", "null"] },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start", "end", "text"],
+            "properties": {
+              "start": { "type": "number" },
+              "end": { "type": "number" },
+              "text": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "totalDuration": { "type": "number", "exclusiveMinimum": 0 }
+  }
+}

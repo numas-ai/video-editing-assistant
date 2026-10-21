@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://video-producer/style-spec.schema.json",
+  "title": "参考片风格规格",
+  "type": "object",
+  "required": ["schemaVersion", "canvas", "rhythm", "shots", "captions"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "source": { "type": "object" },
+    "canvas": {
+      "type": "object",
+      "required": ["width", "height", "fps"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "fps": { "type": "number", "exclusiveMinimum": 0 },
+        "aspect": { "type": "string" }
+      }
+    },
+    "rhythm": {
+      "type": "object",
+      "required": ["durationSec", "shotCount", "avgShotSec"],
+      "properties": {
+        "durationSec": { "type": "number" },
+        "shotCount": { "type": "integer", "minimum": 1 },
+        "avgShotSec": { "type": "number" },
+        "shotSecP10": { "type": "number" },
+        "shotSecP50": { "type": "number" },
+        "shotSecP90": { "type": "number" },
+        "cuts": { "type": "array", "items": { "type": "number" } }
+      }
+    },
+    "shots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "start", "end", "duration"],
+        "properties": {
+          "index": { "type": "integer" },
+          "start": { "type": "number" },
+          "end": { "type": "number" },
+          "duration": { "type": "number" },
+          "frame": { "type": "string" },
+          "description": { "type": "string" },
+          "kinds": { "type": "array", "items": { "type": "string" } },
+          "brightness": { "type": "number" },
+          "saturation": { "type": "number" },
+          "sharpness": { "type": "number" },
+          "color": { "type": "object" }
+        }
+      }
+    },
+    "captions": {
+      "type": "object",
+      "required": ["band", "segments"],
+      "properties": {
+        "band": {
+          "type": "object",
+          "required": ["y", "height"],
+          "properties": {
+            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+            "height": { "type": "number", "minimum": 0, "maximum": 1 },
+            "edgeScore": { "type": "number" }
+          }
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start", "text"],
+            "properties": {
+              "start": { "type": "number" },
+              "end": { "type": ["number", "null"] },
+              "duration": { "type": "number" },
+              "text": { "type": "string" }
+            }
+          }
+        },
+        "fontSizeRatio": { "type": "number" },
+        "maxCharsPerLine": { "type": "integer" }
+      }
+    },
+    "audio": { "type": "object" },
+    "disclaimer": {
+      "type": ["object", "null"],
+      "properties": {
+        "text": { "type": "string" },
+        "position": { "type": "string" }
+      }
+    },
+    "template": { "type": "object" }
+  }
+}
