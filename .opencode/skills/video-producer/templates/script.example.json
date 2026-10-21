@@ -12,31 +12,165 @@
   },
   "bgm": null,
   "lines": [
-    { "id": 1, "text": "挖到宝了", "intent": "hook", "shotHint": "flatlay" },
-    { "id": 2, "text": "我自己回购了三件", "intent": "hook", "shotHint": "flatlay" },
-    { "id": 3, "text": "小胸大胸都能穿", "intent": "hook", "shotHint": "handheld" },
-    { "id": 4, "text": "普通内衣要么空杯", "intent": "pain", "shotHint": "product_closeup" },
-    { "id": 5, "text": "要么勒得喘不过气", "intent": "pain", "shotHint": "product_closeup" },
-    { "id": 6, "text": "这款三角杯就不一样", "intent": "turn", "shotHint": "flatlay" },
-    { "id": 7, "text": "一体式杯垫不用手扶", "intent": "feature", "shotHint": "handheld" },
-    { "id": 8, "text": "前扣一搭就穿好", "intent": "feature", "shotHint": "handheld" },
-    { "id": 9, "text": "松手也不会跑位", "intent": "feature", "shotHint": "handheld" },
-    { "id": 10, "text": "三角杯型贴合胸型", "intent": "feature", "shotHint": "product_closeup" },
-    { "id": 11, "text": "小胸穿不空杯", "intent": "benefit", "shotHint": "handheld" },
-    { "id": 12, "text": "大胸也不压胸", "intent": "benefit", "shotHint": "handheld" },
-    { "id": 13, "text": "底围加宽一点都不勒肉", "intent": "benefit", "shotHint": "flatlay" },
-    { "id": 14, "text": "底围有支撑不塌不卷", "intent": "benefit", "shotHint": "handheld" },
-    { "id": 15, "text": "细肩带一点都不勒肩", "intent": "benefit", "shotHint": "flatlay" },
-    { "id": 16, "text": "边缘走线你看多平整", "intent": "feature", "shotHint": "product_closeup" },
-    { "id": 17, "text": "浅蓝边撞色特别提气", "intent": "color", "shotHint": "flatlay" },
-    { "id": 18, "text": "杯垫是裸色的很服帖", "intent": "feature", "shotHint": "handheld" },
-    { "id": 19, "text": "贴身穿细腻不扎人", "intent": "benefit", "shotHint": "product_closeup" },
-    { "id": 20, "text": "穿一整天都很自在", "intent": "benefit", "shotHint": "flatlay" },
-    { "id": 21, "text": "棕色配浅蓝边最显白", "intent": "color", "shotHint": "flatlay" },
-    { "id": 22, "text": "豹纹配色又纯又欲", "intent": "color", "shotHint": "handheld" },
-    { "id": 23, "text": "黑色百搭不出错", "intent": "color", "shotHint": "handheld" },
-    { "id": 24, "text": "他家现在新品冲销量", "intent": "cta", "shotHint": "flatlay" },
-    { "id": 25, "text": "两件到手更划算", "intent": "cta", "shotHint": "flatlay" },
-    { "id": 26, "text": "点左下角看看价格", "intent": "cta", "shotHint": "handheld" }
-  ]
+    {
+      "id": 1,
+      "text": "挖到宝了",
+      "intent": "hook",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 2,
+      "text": "我自己回购了三件",
+      "intent": "hook",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 3,
+      "text": "小胸大胸都能穿",
+      "intent": "hook",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 4,
+      "text": "普通内衣要么空杯",
+      "intent": "pain",
+      "shotHint": "product_closeup"
+    },
+    {
+      "id": 5,
+      "text": "要么勒得喘不过气",
+      "intent": "pain",
+      "shotHint": "product_closeup"
+    },
+    {
+      "id": 6,
+      "text": "这款三角杯就不一样",
+      "intent": "turn",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 7,
+      "text": "一体式杯垫不用手扶",
+      "intent": "feature",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 8,
+      "text": "前扣一搭就穿好",
+      "intent": "feature",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 9,
+      "text": "松手也不会跑位",
+      "intent": "feature",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 10,
+      "text": "三角杯型贴合胸型",
+      "intent": "feature",
+      "shotHint": "product_closeup"
+    },
+    {
+      "id": 11,
+      "text": "小胸穿不空杯",
+      "intent": "benefit",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 12,
+      "text": "大胸也不压胸",
+      "intent": "benefit",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 13,
+      "text": "底围加宽一点都不勒肉",
+      "intent": "benefit",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 14,
+      "text": "底围有支撑不塌不卷",
+      "intent": "benefit",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 15,
+      "text": "细肩带一点都不勒肩",
+      "intent": "benefit",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 16,
+      "text": "边缘走线你看多平整",
+      "intent": "feature",
+      "shotHint": "product_closeup"
+    },
+    {
+      "id": 17,
+      "text": "浅蓝边撞色特别提气",
+      "intent": "color",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 18,
+      "text": "杯垫是裸色的很服帖",
+      "intent": "feature",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 19,
+      "text": "贴身穿细腻不扎人",
+      "intent": "benefit",
+      "shotHint": "product_closeup"
+    },
+    {
+      "id": 20,
+      "text": "穿一整天都很自在",
+      "intent": "benefit",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 21,
+      "text": "棕色配浅蓝边最显白",
+      "intent": "color",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 22,
+      "text": "豹纹配色又纯又欲",
+      "intent": "color",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 23,
+      "text": "黑色百搭不出错",
+      "intent": "color",
+      "shotHint": "handheld"
+    },
+    {
+      "id": 24,
+      "text": "他家现在新品冲销量",
+      "intent": "cta",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 25,
+      "text": "两件到手更划算",
+      "intent": "cta",
+      "shotHint": "flatlay"
+    },
+    {
+      "id": 26,
+      "text": "点左下角看看价格",
+      "intent": "cta",
+      "shotHint": "handheld"
+    }
+  ],
+  "disclaimer": {
+    "text": "本视频由AI配音 非真人发声",
+    "position": "top-right"
+  }
 }

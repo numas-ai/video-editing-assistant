@@ -498,7 +498,8 @@ def build(style: dict, index: dict, script: dict, tts: dict, *, height: int, fps
                                                   + style["captions"]["band"]["height"])))),
             "alignment": 2,
         },
-        "disclaimer": style.get("disclaimer"),
+        # 参考片拆解拿不到角标时（--skip-vlm），用文案配置兜底：AI 配音必须标注
+        "disclaimer": style.get("disclaimer") or script.get("disclaimer"),
         "events": events,
     }
 
