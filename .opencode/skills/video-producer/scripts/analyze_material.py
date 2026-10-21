@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np
 
 from lib import ffmpeg, metrics, project, sig, vlm
-from lib.run import Step, log, write_json
+from lib.run import Step, log, read_json, write_json
 
 CACHE_PATH = project.WORK / "cache" / "vlm_cache.json"
 VIDEO_EXT = {".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm"}
@@ -134,14 +134,10 @@ def analyze_video(path: Path, out_dir: Path, cache: Cache, *, win: float, hop: f
         idx = min(max(int(((seg["start"] + seg["end"]) / 2) * 2.0), 0), len(arrs) - 1)
         key = f"{stem}@{seg['start']}"
         signatures[key] = [round(float(x), 5) for x in sig.from_array(arrs[idx])]
-        # 标注"主体 + 动作"，编排阶段靠它把画面和口播语义对齐
-        if use_vlm and 0 <= idx < len(frames):
-            shot_frame = frames[idx]
-            label = cache.get(shot_frame, "label3")
-            if label is None:
-                label = vlm.label_segment(shot_frame)
-                cache.put(shot_frame, "label3", label)
-            seg["subject"], seg["action"], seg["details"] = vlm.split_label(label)
+
+    # 标注在素材级做一次，覆盖该素材的所有片段：
+    # 一段素材通常是同一个机位同一个商品，逐片段重复调用只是浪费钱。
+    # 真正的区分靠画面指纹（signatures）来保证多样性。
 
     mid = (info["duration"] / 2)
     rep = ffmpeg.frame_at(path, mid, out_dir / "reps" / f"{stem}.jpg", width=540)
@@ -227,11 +223,16 @@ def analyze_image(path: Path, out_dir: Path, cache: Cache, use_vlm: bool, fast: 
             cache.put(rep, "classify", kind)
         entry["description"] = desc
         entry["kinds"] = [kind]
-        label = cache.get(rep, "label3")
+        label_kind = f"label:{vlm.MODEL_TAG}"
+        label = cache.get(rep, label_kind)
         if label is None:
             label = vlm.label_segment(rep)
-            cache.put(rep, "label3", label)
+            cache.put(rep, label_kind, label)
         entry["subject"], entry["action"], entry["details"] = vlm.split_label(label)
+        # 回填到该素材的所有候选片段
+        for seg in entry["segments"]:
+            seg["subject"], seg["action"], seg["details"] = (
+                entry["subject"], entry["action"], entry["details"])
     else:
         entry["description"] = ""
         entry["kinds"] = []
@@ -248,6 +249,8 @@ def main() -> None:
     ap.add_argument("--per-clip", type=int, default=project.SEGMENTS_PER_CLIP,
                     help="每段素材最多保留几个候选片段")
     ap.add_argument("--skip-vlm", action="store_true")
+    ap.add_argument("--labels", default=None,
+                    help="AI 读图产出的标注 JSON（clipId -> subject/action/details）。给了就不调用视觉 API")
     ap.add_argument("--fast", action="store_true", default=project.FAST_ANALYSIS,
                     help="快模式：跳过描述/构图分类，只保留主体动作标注，省约 1/4 推理时间")
     args = ap.parse_args()
@@ -260,15 +263,20 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     cache = Cache(CACHE_PATH)
 
-    if not args.skip_vlm:
+    manual_labels = None
+    if args.labels:
+        manual_labels = read_json(Path(args.labels))
+        log("material", f"使用 AI 标注文件：{args.labels}（{len(manual_labels)} 条）")
+
+    if not args.skip_vlm and manual_labels is None:
         health = vlm.health()
         if not health["ok"]:
             raise SystemExit(
-                "本地视觉模型不可用，语义标注无法生成。\n"
-                f"  目标：{project.VLM_MODEL} @ {project.VLM_URL}\n"
-                f"  当前可用：{health.get('models') or health.get('error')}\n"
-                f"  修复：bash {project.SKILL_DIR}/scripts/bootstrap.sh\n"
-                "  或：ollama serve && ollama pull " + project.VLM_MODEL + "\n"
+                "视觉模型不可用，语义标注无法生成。\n"
+                f"  后端：{health.get('provider')} / {health.get('model')}\n"
+                f"  原因：{health.get('detail')}\n"
+                f"  修复：在 pipeline.conf 配置生产级视觉模型，并设置密钥环境变量；\n"
+                f"        或改用本地模型（vlm_provider=ollama）后运行 bootstrap.sh\n"
                 "  确实要跳过视觉分析（会退化成按分数选镜）：加 --skip-vlm"
             )
 
@@ -294,7 +302,23 @@ def main() -> None:
                 log(s.name, f"{f.name} 分析失败：{exc}", level="warn")
         cache.flush()
 
-    if not args.skip_vlm and len(clips) < len(files) * 0.8:
+    if manual_labels:
+        missing = [c["id"] for c in clips if c["id"] not in manual_labels]
+        if missing:
+            log("material", f"{len(missing)} 个素材没有标注，将退化为按分数选镜：{missing[:5]}",
+                level="warn")
+        for clip in clips:
+            data = manual_labels.get(clip["id"])
+            if not data:
+                continue
+            subject = data.get("subject", "")
+            action = data.get("action", "")
+            details = data.get("details", "")
+            clip["subject"], clip["action"], clip["details"] = subject, action, details
+            for seg in clip["segments"]:
+                seg["subject"], seg["action"], seg["details"] = subject, action, details
+
+    if not args.skip_vlm and not manual_labels and len(clips) < len(files) * 0.8:
         raise SystemExit(
             f"只有 {len(clips)}/{len(files)} 个素材分析成功，超过 20% 失败。\n"
             "不要带着残缺的素材库往下走，先修失败原因（通常还是视觉模型或文件格式）。"

@@ -49,15 +49,22 @@ COLOR_WORDS: dict[str, tuple[str, ...]] = {
     "浅蓝": ("浅蓝", "蓝"),
 }
 
-ACTION_RULES: list[tuple[tuple[str, ...], tuple[str, ...]]] = [
-    (("扣", "一搭", "穿好", "跑位"), ("扣",)),
-    (("平铺", "对比", "多款", "配色", "随便挑", "挑", "两件", "价格", "划算", "销量", "左下角", "下单"),
-     ("平铺", "对比", "并排", "陈列", "多款")),
-    (("包装", "袋"), ("包装", "装袋", "袋")),
-    (("翻", "后背", "露背", "美背"), ("翻", "背")),
-    (("托", "聚拢", "承托", "胸型", "压"), ("托",)),
-    (("底围", "边缘", "走线", "勒肉"), ("底围", "边缘", "浅蓝边")),
-    (("肩带", "勒肩"), ("肩带",)),
+# 这些是"配色细节"，不是商品主色。说"浅蓝边"时不应该要求主体是蓝色。
+TRIM_TERMS = ("浅蓝边", "蓝边")
+
+# (文案关键词, 画面证据, 不命中是否扣分)
+# 扣分只用于"必须对上"的动作；像促单、配色这种，画面给什么都说得通，只加分不扣分。
+ACTION_RULES: list[tuple[tuple[str, ...], tuple[str, ...], bool]] = [
+    (("扣", "一搭", "穿好", "跑位"), ("扣",), True),
+    (("底围", "下围", "支撑", "不塌", "勒肉"), ("底围", "托底", "手托底围"), True),
+    (("肩带", "勒肩"), ("肩带",), True),
+    (("翻", "后背", "露背", "美背"), ("翻", "背"), True),
+    (("托", "聚拢", "承托", "胸型", "压"), ("托", "举"), True),
+    (("杯垫", "空杯", "手扶", "一体式"), ("杯垫", "托", "举", "触摸"), False),
+    (("勒", "喘不过气"), ("拉扯肩带", "扣合前扣", "底围"), False),
+    (("包装", "袋"), ("包装", "装袋", "袋"), True),
+    (("价格", "划算", "销量", "两件", "左下角", "下单", "挑", "配色"),
+     ("平铺", "对比", "并排", "陈列", "多款"), False),
 ]
 
 DETAIL_TERMS = ("前扣", "肩带", "杯垫", "后背", "侧边", "底围", "浅蓝边", "豹纹", "包装袋", "多款")
@@ -189,17 +196,22 @@ class Picker:
         details = seg.get("details") or ""
         score = 0.0
 
-        wanted_colors = [keys for word, keys in COLOR_WORDS.items() if word in text]
+        # 先把"浅蓝边"这类配色细节从主色判断里剔除，它属于细节而非主体
+        color_text = text
+        for term in TRIM_TERMS:
+            color_text = color_text.replace(term, "")
+
+        wanted_colors = [keys for word, keys in COLOR_WORDS.items() if word in color_text]
         if wanted_colors:
             matched = any(k in subject for keys in wanted_colors for k in keys)
             score += 0.60 if matched else -1.20
 
-        for text_keys, act_keys in ACTION_RULES:
+        for text_keys, act_keys, penalize in ACTION_RULES:
             if not any(k in text for k in text_keys):
                 continue
             if any(k in action or k in details for k in act_keys):
                 score += 0.45
-            else:
+            elif penalize:
                 score -= 0.25
 
         hits = sum(1 for term in DETAIL_TERMS if term in text and term in details)

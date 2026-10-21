@@ -288,7 +288,12 @@ def main() -> None:
     with Step("reference/captions") as s:
         band = detect_caption_band(samples)
         log(s.name, f"字幕带 y={band['y']:.3f} h={band['height']:.3f}")
-        captions = segment_captions(samples, args.caption_fps, band, cache, out_dir)
+        if args.skip_vlm:
+            # 字幕文案只用于参考，不影响出片；没有视觉模型时跳过，节奏与字幕位置仍可用
+            captions = []
+            log(s.name, "跳过字幕识别（--skip-vlm），字幕位置与节奏仍已测出", level="warn")
+        else:
+            captions = segment_captions(samples, args.caption_fps, band, cache, out_dir)
         disclaimer = detect_disclaimer(samples, cache, out_dir) if not args.skip_vlm else None
         if captions and captions[-1]["end"] is None:
             captions[-1]["end"] = round(info["duration"], 3)

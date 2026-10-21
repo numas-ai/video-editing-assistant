@@ -79,10 +79,6 @@ COSYVOICE_VENV = COSYVOICE_HOME / "venv"
 COSYVOICE_REPO = COSYVOICE_HOME / "repo"
 COSYVOICE_MODELS = COSYVOICE_HOME / "models"
 
-VLM_URL = os.environ.get("VIDEO_PIPELINE_VLM_URL", "http://127.0.0.1:11434")
-VLM_MODEL = os.environ.get("VIDEO_PIPELINE_VLM_MODEL", "qwen3-vl:4b-instruct")
-
-
 def _resolve_tool(env_key: str, candidates: list[str]) -> str:
     explicit = os.environ.get(env_key)
     if explicit:

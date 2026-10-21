@@ -71,6 +71,8 @@ bash .opencode/skills/video-producer/scripts/bootstrap.sh
 | 内存 | 16GB 以上，建议 24GB |
 | 磁盘 | 20GB 以上空闲（依赖约 11GB） |
 | 软件 | [opencode](https://opencode.ai) + 已配置的模型 |
+| 视觉模型 | opencode 使用的模型**必须支持看图**（素材标注由它亲自完成） |
+| 配音 | 本地运行，不需要联网 |
 
 实测机型：MacBook Air M3 / 24GB（无风扇），首次出片 30–45 分钟，改一版 1–7 分钟。
 

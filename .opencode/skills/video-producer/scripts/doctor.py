@@ -50,12 +50,16 @@ def check_python() -> dict:
 
 def check_vlm() -> dict:
     health = vlm.health()
+    label = "视觉模型（生产级）" if health["provider"] != "ollama" else "视觉模型（本地）"
+    detail = f"{health['model']} @ {health['provider']}"
     if health["ok"]:
-        return line(OK, "本地视觉模型", f"{project.VLM_MODEL} @ {project.VLM_URL}")
-    if not health["models"]:
-        return line(WARN, "本地视觉模型", "Ollama 未响应", "ollama serve && ollama pull qwen3-vl:4b-instruct")
-    return line(WARN, "本地视觉模型", f"缺少 {project.VLM_MODEL}",
-                f"ollama pull {project.VLM_MODEL}")
+        return line(OK, label, detail)
+    if health["provider"] == "ollama":
+        fix = f"ollama serve && ollama pull {health['model']}（或改用生产级云端模型）"
+    else:
+        fix = (f"检查 {vlm.KEY_ENV_NAME} 是否设置、base_url/model 是否正确；"
+               f"当前 {health['detail']}")
+    return line(FAIL, label, detail, fix)
 
 
 def check_tts() -> dict:

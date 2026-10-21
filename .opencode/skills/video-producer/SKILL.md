@@ -66,7 +66,7 @@ bash $S/bootstrap.sh            # 加 --no-tts 跳过 6GB 的本地配音
 bash $S/bootstrap.sh --dry-run  # 只看会装什么，不动系统
 ```
 
-`bootstrap.sh` 负责：Homebrew → ffmpeg-full / uv / node → Ollama + 视觉模型 →
+`bootstrap.sh` 负责：Homebrew → ffmpeg-full / uv / node → （本地模式才装 Ollama）→
 Python/Node 依赖 → 本地 TTS → `doctor.py` 全绿才退出 0。
 
 已经装好的环境直接跑自检：
@@ -87,21 +87,41 @@ node $S/fetch_reference.mjs --url "<分享链接|视频ID>" --out 参考视频 -
 ### 2. 拆解参考片
 
 ```bash
-$PY $S/analyze_reference.py
+$PY $S/analyze_reference.py --skip-vlm
 ```
 
 产出 `work/reference/style-spec.json`：
 画幅、镜头数、镜长分布、每个镜头的描述与构图类型、字幕带位置、逐句文案与时间、响度/节拍、免责声明角标。
 
-要点：文案用**本地视觉模型读字幕带**，不是 OCR 猜字；因此不联网也不再依赖 tesseract。
+`--skip-vlm` 只做机械拆解（镜头边界、镜长、字幕带位置、节奏），足够支撑出片。
+字幕文案只是参考信息，不影响成片；要看文案就配好视觉模型后去掉该参数。
 
-### 3. 素材体检
+### 3. 素材体检（标注由 AI 亲自看图）
+
+视觉识别质量决定成片水平。**不要依赖固定的本地小模型**——
+让当前 opencode 会话里的模型亲自看素材缩略图，它用什么模型就是什么模型。
 
 ```bash
-$PY $S/analyze_material.py --input 学习素材
+# 1) 先建索引（机械分析，不标注）
+$PY $S/analyze_material.py --skip-vlm
+
+# 2) 生成九宫格标注图 + 空模板
+$PY $S/make_label_sheets.py
+
+# 3) AI 逐张看 过程文件/material/labeling/sheet_*.jpg
+#    把每个素材的「主体｜动作｜细节」填进 labels.template.json，存为 labels.json
+
+# 4) 合并标注
+$PY $S/analyze_material.py --labels 过程文件/material/labeling/labels.json
 ```
 
-产出 `work/material/material-index.json`：每段素材的构图类型、内容描述，以及若干**可直接使用的候选片段**（含清晰度/抖动/曝光打分）。
+标注规则：
+- 主体 = 颜色 + 款式；动作 = 手在做什么；细节 = 画面里**确实能看见**的局部（最多三个）
+- 细节词表：前扣、肩带、杯垫、后背、侧边、底围、浅蓝边、豹纹、包装袋、多款
+- 看不清就留空，不要猜。标注错了，成片里画面就会配错
+
+> 素材量很大时也可以走云端 API：在 `pipeline.conf` 配 `vlm_provider=openai` 与密钥，
+> 直接跑 `analyze_material.py` 批量标注。
 
 ### 4. 写文案
 
@@ -286,7 +306,7 @@ $PY $S/version.py diff v01 v03  # 对比两版差异
 |---|---|---|
 | `question` 工具 | 一次一问，用户点选 | 用纯文本提问，但仍遵守「一次只问一个问题 + 是什么/为什么/建议/影响」；不能因为没工具就跳过确认 |
 | `skill` 自动加载 | 直接进流程 | 让用户把本文件内容贴进上下文，按章节手动执行 |
-| 本地 Ollama | 语义标注可用，画面服从口播 | 先跑 `bootstrap.sh`；确实装不了就用 `--skip-vlm`，并在交付时明确声明"未做语义对齐，画面按分数选" |
+| 视觉模型 | AI 能看图打标 | 默认由 opencode 会话里的模型亲自标注（见第 3 步）；也可配云端 API 批量跑 |
 
 跨宿主使用时，`question` 工具不可用不影响主链路：抓参考片、拆解、编排、渲染、质检都不依赖它。
 
@@ -324,7 +344,7 @@ $PY $S/version.py diff v01 v03  # 对比两版差异
 |---|---|---|
 | `ass` 滤镜不存在 | 用的是精简版 ffmpeg | `brew install ffmpeg-full`，脚本会自动优先用它 |
 | 字幕里中文变方块 | libass 找不到字体 | `script.json` 指定已安装字体，或装字体后 `fc-cache -f` |
-| 视觉模型超时 | Ollama 没起/模型未拉 | `ollama serve`、`ollama pull qwen3-vl:4b-instruct` |
+| 视觉模型超时/401 | 密钥、地址或模型 ID 不对 | 跑 `doctor.py` 看具体原因；检查 `vlm_*` 配置与密钥环境变量 |
 | 抓参考片为空 | 风控验证 | `--headed` 人工过验证 |
 | 镜头裁掉了产品 | 主体偏一侧 | 调 `metrics.best_crop_x` 的偏移上限，或在该镜头手写 `crop.x` |
 | 配音太慢/太快 | 语速不合适 | 调 `voice.speed`，重新跑第 5 步起 |

@@ -55,6 +55,11 @@ fi
 
 log "预计耗时 30–50 分钟（主要在下模型），占用约 11GB"
 
+# 视觉模型走云端时不需要装 Ollama；只有 provider=ollama 才装
+CONF="$ROOT/pipeline.conf"
+VLM_PROVIDER="$( [ -f "$CONF" ] && grep -E '^vlm_provider=' "$CONF" | head -1 | cut -d= -f2 | tr -d ' ' || true )"
+VLM_PROVIDER="${VLM_PROVIDER:-ollama}"
+
 # ---------------------------------------------------------------- 1. Homebrew
 if ! has brew; then
   log "安装 Homebrew —— 系统可能会要求输入一次 Mac 开机密码（终端里不会显示字符，输完回车）"
@@ -80,6 +85,7 @@ else
 fi
 
 # ---------------------------------------------------------------- 3. Ollama + 视觉模型
+if [ "$VLM_PROVIDER" = "ollama" ]; then
 if ! has ollama; then
   log "安装 Ollama"
   retry brew install ollama
@@ -106,6 +112,9 @@ else
   else
     warn "Ollama 未响应，跳过模型拉取；可稍后手动执行：ollama serve && ollama pull $VLM_MODEL"
   fi
+fi
+else
+  log "视觉模型走云端（${VLM_PROVIDER}），跳过 Ollama 安装"
 fi
 
 # ---------------------------------------------------------------- 4. 流水线依赖

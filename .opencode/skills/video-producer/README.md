@@ -113,7 +113,8 @@ bash .opencode/skills/video-producer/scripts/run_pipeline.sh "" 成片名
 | 阶段 | 输入 | 输出 | 首次耗时 | 重跑耗时 |
 |---|---|---|---|---|
 | ① 拆解参考片 | 参考片 | 风格规格 | 5–10 分钟 | < 1 秒（有缓存） |
-| ② 素材体检 | 素材目录 | 素材索引 + 指纹 | 10 分钟 / 40 段 | 1 分钟（有缓存） |
+| ② 素材体检 | 素材目录 | 素材索引 + 指纹 | 1 分钟 | 1 分钟 |
+| ②' AI 看图标注 | 九宫格标注图 | 每段素材的「主体｜动作｜细节」 | 5–10 分钟 | 5–10 分钟 |
 | ③ 配音 | 文案 | 逐句 wav | 2.5 分钟 / 26 句 | 2.5 分钟 |
 | ④ 编排 | 文案+素材+风格 | 时间线 JSON | 10 秒 | 10 秒 |
 | ⑤ 渲染 | 时间线 | 成片 | 35 秒 | 35 秒 |
@@ -140,7 +141,8 @@ bash .opencode/skills/video-producer/scripts/bootstrap.sh
 | ffmpeg-full | 剪辑引擎（必须带 libass，否则字幕烧不上去） | ~60MB |
 | uv + Python 3.11 | 分析/编排/渲染的运行环境 | ~100MB |
 | Node + Playwright | 抓取抖音参考片 | ~200MB |
-| Ollama + qwen3-vl:4b-instruct | 读字幕、给画面打标签 | ~3.3GB |
+| 视觉模型（云端 API） | 读字幕、给画面打标签。**必须生产级** | 按调用计费 |
+| Ollama + qwen3-vl:4b（可选） | 离线降级方案，细节识别弱 | ~3.3GB |
 | CosyVoice3 + PyTorch | 本地配音 | ~6GB |
 
 装完约 **11GB**，跑完 `doctor.py` 全绿才算成功。
@@ -187,18 +189,27 @@ node .opencode/skills/video-producer/scripts/fetch_reference.mjs \
 - 逐句文案和出现时间
 - 响度、节拍、有没有人声/配乐
 
-### Step 4 · 素材体检
+### Step 4 · 素材体检 + 标注
 
 ```bash
-.tools/py/pipeline/bin/python .opencode/skills/video-producer/scripts/analyze_material.py
+# 1) 机械分析：切片、打分、画面指纹
+.tools/py/pipeline/bin/python .opencode/skills/video-producer/scripts/analyze_material.py --skip-vlm
+
+# 2) 生成九宫格标注图（每张 9 个素材，格子下方是编号）
+.tools/py/pipeline/bin/python .opencode/skills/video-producer/scripts/make_label_sheets.py
 ```
 
-产出 `work/material/`：
+然后 **AI 逐张看 `work/material/labeling/sheet_*.jpg`**，把每个素材的
+「主体｜动作｜细节」填进 `labels.template.json`，存成 `labels.json`，再合并：
 
-- `material-index.json`：每段素材的可用片段、质量分、「主体｜动作｜细节」标注
-- `signatures.json`：每段的画面指纹，用于去重
+```bash
+.tools/py/pipeline/bin/python .opencode/skills/video-producer/scripts/analyze_material.py \
+    --labels work/material/labeling/labels.json
+```
 
-> 如果视觉模型没起来，这一步会直接失败并告诉你怎么修，**不会静默降级**。
+> 为什么让 AI 看图而不是脚本调 API：画面识别的质量决定成片水平，
+> 客户在 opencode 里用什么模型，就用什么模型，不锁死到某一家。
+> 素材量特别大时，也可以在 `pipeline.conf` 配云端视觉 API 批量跑。
 
 ### Step 5 · 写文案（最关键的一步）
 
@@ -403,7 +414,7 @@ cp .opencode/skills/video-producer/templates/script.example.json work/script.jso
 | `doctor.py` 报 ffmpeg 缺滤镜 | 用了精简版 ffmpeg | 脚本会自动优先用 ffmpeg-full，确认 `/opt/homebrew/opt/ffmpeg-full` 存在 |
 | 字幕中文变方块 | libass 找不到字体 | `fc-cache -f`，或在 `script.json` 里换 `caption.fontFamily` |
 | 抓参考片为空 | 抖音风控 | 加 `--headed` 人工过验证 |
-| `analyze_material.py` 直接失败 | 视觉模型没起 | 按报错提示跑 `bootstrap.sh` 或 `ollama serve && ollama pull qwen3-vl:4b-instruct` |
+| 标注后命中率仍然低 | 标注写得太粗 / 文案超出素材 | 重看九宫格，细节是否漏写；或改文案 |
 | 语义命中率低 | 文案超出素材 / 规则漏词 | 先改文案，再补 `plan_edit.py` 的 `ACTION_RULES` / `COLOR_WORDS` |
 | 成片时长比计划短很多 | 转场链越界 | 重跑 `plan_edit.py`（已做帧对齐，正常不会出现） |
 | 某个镜头不对 | 选镜问题 | 直接改 `edit-plan.json` 里该镜头的 `clipId/sourceIn/sourceOut`，重跑渲染 |
@@ -533,8 +544,10 @@ $PY $S/plan_edit.py --canvas reference   # 跟参考片比例，自动做主体�
 | `VIDEO_PIPELINE_WORK` | `work` | 中间产物 |
 | `VIDEO_PIPELINE_OUTPUT` | `output` | 成片 |
 | `VIDEO_PIPELINE_FFMPEG` | `/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg` → `ffmpeg` | 必须支持 libass |
-| `VIDEO_PIPELINE_VLM_URL` | `http://127.0.0.1:11434` | Ollama 地址 |
-| `VIDEO_PIPELINE_VLM_MODEL` | `qwen3-vl:4b-instruct` | 视觉模型 |
+| `VIDEO_PIPELINE_VLM_PROVIDER` | `ollama` | `openai`（生产级）或 `ollama`（离线降级） |
+| `VIDEO_PIPELINE_VLM_BASE_URL` | `http://127.0.0.1:11434` | 接口地址，不带 `/chat/completions` |
+| `VIDEO_PIPELINE_VLM_MODEL` | `qwen3-vl:4b-instruct` | 视觉模型 ID |
+| `VIDEO_PIPELINE_VLM_API_KEY` | 空 | 云端密钥；也可用 `vlm_api_key_env` 指定变量名 |
 | `COSYVOICE_THREADS` | `8` | TTS 线程数 |
 
 ---
